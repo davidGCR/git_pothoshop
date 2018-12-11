@@ -5,7 +5,6 @@
 #include <QFileDialog>
 
 #include <opencv2/opencv.hpp>
-#include<iostream>
 #include "opencv2/imgcodecs.hpp"
 #include "opencv2/highgui.hpp"
 #include "opencv2/imgproc.hpp"
@@ -15,7 +14,9 @@
 #include<vector>
 #include "dialogwindow.h"
 #include <cmath>
-
+#include<iostream>
+#include "complex.h"
+#include "fft.h"
 using namespace cv;
 using namespace std;
 
@@ -55,6 +56,10 @@ private slots:
     void on_btn_bordes_clicked();
 
     void on_btn_gamma_clicked();
+
+    void on_btn_video_clicked();
+
+    void on_btn_fft_clicked();
 
 private:
     Ui::MainWindow *ui;

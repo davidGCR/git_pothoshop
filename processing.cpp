@@ -292,12 +292,15 @@ void processing::interpolate(float *px, float *py, float* xf, float* yf){
     }
 
     // display histogram
-    namedWindow(name, CV_WINDOW_AUTOSIZE);
+//    namedWindow(name, CV_WINDOW_AUTOSIZE);
+    namedWindow(name, WINDOW_AUTOSIZE);
     imshow(name, histImage);
 }
  void processing::equalizarHistograma(string image_path){
      // Cargar imagen
-         Mat image = imread(image_path, CV_LOAD_IMAGE_GRAYSCALE);
+//         Mat image = imread(image_path, CV_LOAD_IMAGE_GRAYSCALE);
+     Mat image = imread(image_path);
+     cvtColor(image, image, COLOR_BGR2GRAY);
 
          // Generar histograma
          int histogram[256];

@@ -1,6 +1,10 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include"wavelet.h"
+#include <opencv2/opencv.hpp>
+#include "opencv2/imgcodecs.hpp"
+#include "opencv2/highgui.hpp"
+#include "opencv2/imgproc.hpp"
 
 
 
@@ -74,7 +78,8 @@ void MainWindow::on_load_img_opencv_clicked()
 //    const String path = "/Users/davidchoqueluqueroman/Desktop/CURSOS-MASTER/IMAGENES/photoshop/images/"+image_name;
     Mat inputImage = imread(image_path);
     printProperties(inputImage);
-    cv::cvtColor(inputImage,inputImage,CV_BGR2RGB); //Qt reads in RGB whereas CV in BGR
+    /*cv::cvtColor(inputImage,inputImage,CV_BGR2RGB);*/
+    cv::cvtColor(inputImage,inputImage,COLOR_BGR2RGB);
 //    raw_image = inputImage;
 
     if (!inputImage.empty()) {
@@ -178,7 +183,8 @@ vector<Point>v_polygon;
 vector<Point>quadrilat;
 void onmouse(int event, int x, int y, int flags, void* param)
 {
-    if(event==CV_EVENT_LBUTTONDOWN)
+//    if(event==CV_EVENT_LBUTTONDOWN)
+    if(event==EVENT_LBUTTONDOWN)
     {
         int n_pts = v_polygon.size();
         if(n_pts<=2){
@@ -192,7 +198,8 @@ void onmouse(int event, int x, int y, int flags, void* param)
 }
 void onmouse_quad(int event, int x, int y, int flags, void* param)
 {
-    if(event==CV_EVENT_LBUTTONDOWN)
+//    if(event==CV_EVENT_LBUTTONDOWN)
+     if(event==EVENT_LBUTTONDOWN)
     {
         int n_pts = quadrilat.size();
         if(n_pts<=4){
@@ -523,7 +530,8 @@ void MainWindow::on_btn_bordes_clicked()
 {
     reloadImage();
     Mat src = raw_image.clone();
-    cvtColor(src, src, CV_BGR2GRAY);
+//    cvtColor(src, src, cv::CV_BGR2GRAY);
+    cvtColor(src, src, cv::COLOR_BGR2GRAY);
 
     Mat dst;
     Mat kernel;
@@ -619,4 +627,308 @@ void MainWindow::on_btn_gamma_clicked()
 
     namedWindow("final");
     imshow("final", dst);
+}
+
+Point point1, point2; /* vertical points of the bounding box */
+int drag = 0;
+Rect rec_; /* bounding box */
+Mat img, roiImg; /* roiImg - the part of the image in the bounding box */
+int select_flag = 0;
+bool go_fast = false;
+
+Mat mytemplate;
+
+
+///------- template matching -----------------------------------------------------------------------------------------------
+
+Mat TplMatch( Mat &img, Mat &mytemplate )
+{
+  Mat result;
+
+  matchTemplate( img, mytemplate, result, TM_SQDIFF_NORMED );
+  normalize( result, result, 0, 1, NORM_MINMAX, -1, Mat() );
+
+  return result;
+}
+
+
+///------- Localizing the best match with minMaxLoc ------------------------------------------------------------------------
+
+Point minmax( Mat &result )
+{
+  double minVal, maxVal;
+  Point  minLoc, maxLoc, matchLoc;
+
+  minMaxLoc( result, &minVal, &maxVal, &minLoc, &maxLoc, Mat() );
+  matchLoc = minLoc;
+
+  return matchLoc;
+}
+
+
+///------- tracking --------------------------------------------------------------------------------------------------------
+
+void track()
+{
+    if (select_flag)
+    {
+        //roiImg.copyTo(mytemplate);
+//         select_flag = false;
+        go_fast = true;
+    }
+
+//     imshow( "mytemplate", mytemplate ); waitKey(0);
+
+    Mat result  =  TplMatch( img, mytemplate );
+    Point match =  minmax( result );
+
+    rectangle( img, match, Point( match.x + mytemplate.cols , match.y + mytemplate.rows ), CV_RGB(255, 255, 255), 0.5 );
+
+    std::cout << "match: " << match << endl;
+
+    /// latest match is the new template
+    Rect ROI = cv::Rect( match.x, match.y, mytemplate.cols, mytemplate.rows );
+    roiImg = img( ROI );
+    roiImg.copyTo(mytemplate);
+    imshow( "roiImg", roiImg ); //waitKey(0);
+}
+
+
+///------- MouseCallback function ------------------------------------------------------------------------------------------
+
+void mouseHandler(int event, int x, int y, int flags, void *param)
+{
+    if (event == EVENT_LBUTTONDOWN && !drag)
+    {
+        /// left button clicked. ROI selection begins
+        point1 = Point(x, y);
+        drag = 1;
+    }
+
+    if (event == EVENT_MOUSEMOVE && drag)
+    {
+        /// mouse dragged. ROI being selected
+        Mat img1 = img.clone();
+        point2 = Point(x, y);
+        rectangle(img1, point1, point2, CV_RGB(255, 0, 0), 3, 8, 0);
+        imshow("image", img1);
+    }
+
+    if (event == EVENT_LBUTTONUP && drag)
+    {
+        point2 = Point(x, y);
+        rec_ = Rect(point1.x, point1.y, x - point1.x, y - point1.y);
+        drag = 0;
+        roiImg = img(rec_);
+        roiImg.copyTo(mytemplate);
+    }
+
+    if (event == EVENT_LBUTTONUP)
+    {
+        /// ROI selected
+        select_flag = 1;
+        drag = 0;
+    }
+
+}
+void SSD(Mat image, Mat plantilla, Mat& result,int x_center, int y_center){
+    int x_c = x_center;
+    int y_c = y_center;
+    int h = plantilla.rows/2;
+
+    for(int j=0;j<plantilla.rows;j++){
+        for(int i=0;i<plantilla.cols;i++){
+           result.at<uchar>(x_c-h+i,y_c-h+j) = image.at<uchar>(x_c-h+i,y_c-h+j) - plantilla.at<uchar>(i,j);
+        }
+    }
+//    result.at<uchar>(x_c-h,y_c-h) = image.at<uchar>(x_c-h,y_c-h) - plantilla.at<uchar>(0,j);
+
+//    result.at<uchar>(x_c,y_c) = ;
+}
+void print_mat(Mat img,string title){
+    cout<<"->------------->"<<title<<endl;
+    for(int j=0;;j<img.cols,j++){
+        for (int i=0;i<img.rows;i++) {
+            if(i==7 && j==7){
+                cout<<int(img.at<uchar>(i,j))<<"";
+                break;
+            }
+        }
+        cout<<endl;
+    }
+}
+void scan_image(Mat imag, Mat plantilla, Mat & result){
+    int img_height = imag.rows;
+    int img_weight = imag.cols;
+    int plt_height = plantilla.rows;
+    int plt_weight = plantilla.cols;
+
+
+    int x_start = floor(plt_weight/2);
+    int y_start = floor(plt_height/2);
+    int mitad = floor(plt_weight/2);
+
+    result = plantilla.clone();
+
+//    for(int x=x_start;x<img_weight-mitad;x++){
+//        for(int y=y_start;y<img_height-mitad;y++){
+            SSD(imag,plantilla,result,x_start,y_start);
+            //        }
+            //    }
+    cout<<"plt size: "<<plantilla.size<<" x: "<<x_start<<" y: "<<y_start<<endl;
+
+
+      cout<<"aver:  "<<int(imag.at<uchar>(x_start,y_start))<<"+"<<int(plantilla.at<uchar>(x_start,y_start))<<"="<<int(result.at<uchar>(x_start,y_start));
+//    print_mat(plantilla,"img");
+//    print_mat(plantilla,"plt");
+//    print_mat(plantilla,"result");
+}
+
+void test(){
+    Mat img = imread(PATH_IMAGES+"boy.bmp");
+    Mat result(img.rows, img.cols, CV_8UC1, Scalar(255));
+    cvtColor(img, img, cv::COLOR_BGR2GRAY);
+    namedWindow("Test");
+    setMouseCallback("Test", onmouse, &img);
+
+
+    int  k,size;
+    Mat plantilla;
+    while(1){
+        imshow("Test",img);
+        size = v_polygon.size();
+        if(size==2){
+            int x1 = (v_polygon[0].x < v_polygon[1].x)?v_polygon[0].x:v_polygon[1].x;
+            int y1 = (v_polygon[0].y < v_polygon[1].y)?v_polygon[0].y:v_polygon[1].y;
+
+            int ancho = abs(v_polygon[0].x-v_polygon[1].x);
+            int alto = abs(v_polygon[0].y-v_polygon[1].y);
+
+            Rect rect =  Rect(x1, y1,ancho , alto);
+
+            rectangle( img, rect, Scalar( 0, 55, 255 ), +1, 4 );
+            plantilla  = Mat(img,rect);
+        }
+
+        k = waitKey(10);
+        if (k== 27 || k==13)
+            break;
+    }
+    if(k==13){
+
+        namedWindow("Template");
+        imshow("Template",plantilla);
+    }
+    v_polygon.clear();
+    destroyWindow("Test");
+    destroyWindow("Template");
+    scan_image(img,plantilla,result);
+}
+
+
+
+void MainWindow::on_btn_video_clicked()
+{
+//    int k;
+///*
+/////open webcam
+//    VideoCapture cap(0);
+//    if (!cap.isOpened())
+//      return 1;*/
+
+//    ///open video file
+//    VideoCapture cap;
+//    cap.open( PATH_IMAGES+"car.mp4" );
+//    if ( !cap.isOpened() )
+//    {   cout << "Unable to open video file" << endl;
+//    }
+
+//    cap >> img;
+//    GaussianBlur( img, img, Size(7,7), 3.0 );
+//    imshow( "image", img );
+
+//    while (1)
+//    {
+//        cap >> img;
+//        if ( img.empty() )
+//            break;
+
+//    // Flip the frame horizontally and add blur
+//    cv::flip( img, img, 1 );
+//    GaussianBlur( img, img, Size(7,7), 3.0 );
+
+//        if ( rec_.width == 0 && rec_.height == 0 )
+//            setMouseCallback( "image", mouseHandler, NULL );
+//        else
+//            track();
+
+//        imshow("image", img);
+////  waitKey(100);   k = waitKey(75);
+//    k = waitKey(go_fast ? 30 : 10000);
+//        if (k == 27)
+//            break;
+//    }
+
+    test();
+}
+
+int powerOfTwo(int n) {
+   int i = 0, m = 1;
+   while (m < n) {
+     m <<= 1;
+     ++i;
+   }
+   return i;
+}
+void matTo2DArray(Mat image, M_Complex** array ){
+
+}
+
+
+
+void MainWindow::on_btn_fft_clicked()
+{
+    unsigned int r,c, temp1, temp2;
+        double real, imag;
+        clock_t t1;
+        M_Complex **input_seq;
+        M_Complex **output_seq;
+//        cout<<"Enter the size of DFT: ";
+//        cin>>r;
+//        cout<<"Enter the size of DFT: ";
+//        cin>>c;
+        r=4;
+        c=4;
+        temp1 = r;
+        temp2 = c;
+        int log2w = powerOfTwo(r);
+        int log2h = powerOfTwo(c);
+
+        r = 1 << log2w;
+        c = 1 << log2h;
+
+        input_seq = new M_Complex*[r];
+        for(unsigned int j = 0; j < r; j++){
+            input_seq[j] = new M_Complex[c];
+        }
+
+        for(unsigned int i = 0; i < temp1; i++){
+                for(unsigned int j = 0; j <temp2; ++j){
+                    cin>>real>>imag;
+                    input_seq[i][j] = M_Complex(real,imag);
+                }
+        }
+
+        t1 = clock();
+        output_seq = FFT::fft2(input_seq,r, c);
+
+        cout<<endl<<"The DFT of the given sequence is "<<endl<<endl;
+        for(unsigned int i = 0; i < r; i++)
+        {
+            for(unsigned int j = 0; j < c; j++){
+                    cout<<output_seq[i][j]<<"\t";
+            }
+            cout<<endl;
+
+        }
 }

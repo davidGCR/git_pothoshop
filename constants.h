@@ -4,6 +4,6 @@
 #include<iostream>
 using namespace std;
 
-const string PATH_IMAGES = "/Users/davidchoqueluqueroman/Desktop/CURSOS-MASTER/IMAGENES/photoshop/images/";
+const string PATH_IMAGES = "/home/david/Imágenes/images/";
 
 #endif // CONSTANTS_H

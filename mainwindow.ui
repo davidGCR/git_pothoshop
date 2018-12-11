@@ -176,6 +176,32 @@
      <string>2: Gamma Correccion</string>
     </property>
    </widget>
+   <widget class="QPushButton" name="btn_video">
+    <property name="geometry">
+     <rect>
+      <x>850</x>
+      <y>630</y>
+      <width>89</width>
+      <height>25</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Video</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="btn_fft">
+    <property name="geometry">
+     <rect>
+      <x>850</x>
+      <y>670</y>
+      <width>89</width>
+      <height>25</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>FFT</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menuBar">
    <property name="geometry">

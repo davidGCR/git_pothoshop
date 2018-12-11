@@ -14,7 +14,8 @@ DialogWindow::~DialogWindow()
 }
 void DialogWindow::setImgSrc(Mat img_rpta){
     img_src = img_rpta;
-    cv::cvtColor(img_src,img_src,CV_BGR2RGB);
+//    cv::cvtColor(img_src,img_src,CV_BGR2RGB);
+    cv::cvtColor(img_src,img_src,COLOR_BGR2RGB);
     QImage imdisplay((uchar*)img_src.data, img_src.cols, img_src.rows,
                              img_src.step, QImage::Format_RGB888);
     ui->lbl_img_raw->setPixmap(QPixmap::fromImage(imdisplay));
@@ -23,7 +24,8 @@ void DialogWindow::setImgSrc(Mat img_rpta){
 }
 void DialogWindow::setImgRpta1(Mat img_rpta){
     img_rpta1 = img_rpta;
-    cv::cvtColor(img_rpta1,img_rpta1,CV_BGR2RGB);
+//    cv::cvtColor(img_rpta1,img_rpta1,CV_BGR2RGB);
+    cv::cvtColor(img_rpta1,img_rpta1,COLOR_BGR2RGB);
     QImage imdisplay((uchar*)img_rpta1.data, img_rpta1.cols, img_rpta1.rows,
                              img_rpta1.step, QImage::Format_RGB888);
     ui->lbl_img_rpta1->setPixmap(QPixmap::fromImage(imdisplay));
@@ -32,7 +34,8 @@ void DialogWindow::setImgRpta1(Mat img_rpta){
 }
 void DialogWindow::setImgRpta2(Mat img_rpta){
     img_rpta2 = img_rpta;
-    cv::cvtColor(img_rpta2,img_rpta2,CV_BGR2RGB);
+//    cv::cvtColor(img_rpta2,img_rpta2,CV_BGR2RGB);
+    cv::cvtColor(img_rpta2,img_rpta2,COLOR_BGR2RGB);
     QImage imdisplay((uchar*)img_rpta2.data, img_rpta2.cols, img_rpta2.rows,
                              img_rpta2.step, QImage::Format_RGB888);
     ui->lbl_img_rpta2->setPixmap(QPixmap::fromImage(imdisplay));
