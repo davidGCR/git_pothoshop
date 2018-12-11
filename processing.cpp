@@ -183,17 +183,17 @@ void processing::bilinearTransform(Mat image,Mat* img_result,Mat* img_inv,Rect r
     }
 
 //  Calcular coeficientes de transformacion
-    cv::Mat x;
+    cv::Mat X;
 
-    solve(A,b,x);
-   cout << "transform: " << *u<<","<<*v<<endl;
+    solve(A,b,X);
+   cout << "TRANSFORM: " << X<<endl;
+   vector<Point2f> pts_transforms;
 
     for(int j=0;j<rows;j++){
         for (int i=0;i<cols;i++){
             float ur,vr;
-            float xinv, yinv;
-            processing::transform(x,&i,&j,&ur,&vr);
-            processing::inv_transform(x,&xinv,&yinv,&ur,&vr);
+            processing::transform(X,&i,&j,&ur,&vr);
+            pts_transforms.push_back(Point2f(ur,vr));
             Vec3b pixel = image.at<Vec3b>(i,j);
                     int b, g, r;
                     b = pixel[0];
@@ -204,10 +204,6 @@ void processing::bilinearTransform(Mat image,Mat* img_result,Mat* img_inv,Rect r
                     (*img_result).at<Vec3b>(floor(vr),floor(ur))[1]=image.at<Vec3b>(j,i)[1];
                     (*img_result).at<Vec3b>(floor(vr),floor(ur))[2]=image.at<Vec3b>(j,i)[2];
 
-//                    (*img_inv).at<Vec3b>(floor(yinv),floor(xinv))[0]=(*img_result).at<Vec3b>(floor(vr),floor(ur))[0];
-//                    (*img_inv).at<Vec3b>(floor(yinv),floor(xinv))[1]=(*img_result).at<Vec3b>(floor(vr),floor(ur))[1];
-//                    (*img_inv).at<Vec3b>(floor(yinv),floor(xinv))[2]=(*img_result).at<Vec3b>(floor(vr),floor(ur))[2];
-
             if(i==0&&j==0){
                 cout<<"mapeo: ("<<ur<<","<<vr<<")"<<"pixel("<<b<<","<<g<<","<<r<<")+"<<"coordinate: "<<endl;
             }
@@ -216,8 +212,83 @@ void processing::bilinearTransform(Mat image,Mat* img_result,Mat* img_inv,Rect r
      }
 
     //INVERSA
+//    Mat d = x.clone();
+//    d.at<float>(0,0) = x.at<float>(0,4)-x.at<float>(0,5)*x.at<float>(0,7);
+//    d.at<float>(0,1) = x.at<float>(0,2)*x.at<float>(0,7)-x.at<float>(0,1);
+//    d.at<float>(0,2) = x.at<float>(0,1)*x.at<float>(0,5)-x.at<float>(0,2)*x.at<float>(0,4);
+//    d.at<float>(0,3) = x.at<float>(0,5)*x.at<float>(0,6)-x.at<float>(0,3);
+//    d.at<float>(0,4) = x.at<float>(0,0)-x.at<float>(0,2)*x.at<float>(0,6);
+//    d.at<float>(0,5) = x.at<float>(0,3)*x.at<float>(0,7)-x.at<float>(0,4)*x.at<float>(0,6);
+//    d.at<float>(0,6) = x.at<float>(0,1)*x.at<float>(0,6)-x.at<float>(0,0)*x.at<float>(0,7);
+//    d.at<float>(0,7) = x.at<float>(0,0)*x.at<float>(0,4)-x.at<float>(0,1)*x.at<float>(0,3);
+
+    // the matrix of coefficients
+    float u1 = quadrilats[0].x;
+    float v1 = quadrilats[0].y;
+    float u2 = quadrilats[1].x;
+    float v2 = quadrilats[1].y;
+    float u3 = quadrilats[2].x;
+    float v3 = quadrilats[2].y;
+    float u4 = quadrilats[3].x;
+    float v4 = quadrilats[3].y;
+
+    cv::Mat Ainv = (cv::Mat_<float>(8,8) <<
+                       u1, v1, u1*v1, 1,0, 0, 0, 0,
+                       0,0,0,0,u1, v1, u1*v1, 1,
+                         u2, v2, u2*v2, 1,0, 0, 0, 0,
+                         0,0,0,0,u2, v2, u2*v2, 1,
+                         u3, v3, u3*v3, 1,0, 0, 0, 0,
+                         0,0,0,0,u3, v3, u3*v3, 1,
+                         u4, v4, u4*v4, 1,0, 0, 0, 0,
+                         0,0,0,0,u4, v4, u4*v4, 1
+
+                 );
+
+//   Vector b
+//    float m = x1*y1;
+    cv::Mat binv = (cv::Mat_<float>(8,1) <<
+                 x1,
+                 y1,
+                 x2,
+                 y2,
+            x3,
+            y3,
+            x4,
+            y4
+                 );
 
 
+//  Calcular coeficientes de transformacion
+    cv::Mat Xinv;
+
+    solve(Ainv,binv,Xinv);
+    cout << "INVERSE transform: " << Xinv<<endl;
+
+
+        for (int i=0;i<pts_transforms.size();i++){
+
+            float ur = pts_transforms[i].x;
+            float vr = pts_transforms[i].y;
+            int iur = floor(ur);
+            int ivr = floor(vr);
+//            processing::transform(X,&i,&j,&ur,&vr);
+            float xinv, yinv;
+            processing::inv_transform(Xinv,&xinv,&yinv,&ur,&vr);
+            Vec3b pixel = img_result->at<Vec3b>(iur,ivr);
+                    int b, g, r;
+                    b = pixel[0];
+                    g = pixel[1];
+                    r = pixel[2];
+
+                    (*img_inv).at<Vec3b>(floor(yinv),floor(xinv))[0]=img_result->at<Vec3b>(ivr,iur)[0];
+                    (*img_inv).at<Vec3b>(floor(yinv),floor(xinv))[1]=img_result->at<Vec3b>(ivr,iur)[1];
+                    (*img_inv).at<Vec3b>(floor(yinv),floor(xinv))[2]=img_result->at<Vec3b>(ivr,iur)[2];
+
+            if(iur==0&&ivr==0){
+                cout<<"mapeo2222: ("<<xinv<<","<<yinv<<")"<<"pixel("<<b<<","<<g<<","<<r<<")+"<<"coordinate: "<<endl;
+            }
+
+         }
 
 }
 void processing::interpolate(float *px, float *py, float* xf, float* yf){

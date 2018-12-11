@@ -29,14 +29,26 @@ CONFIG += c++11
 
 SOURCES += \
         main.cpp \
-        mainwindow.cpp
+        mainwindow.cpp \
+    complex.cpp \
+    dialogwindow.cpp \
+    fft.cpp \
+    processing.cpp \
+    imgwarp_mls.cpp
 
 HEADERS += \
         mainwindow.h \
-    constants.h
+    constants.h \
+    complex.h \
+    fft.h \
+    processing.h \
+    wavelet.h \
+    dialogwindow.h \
+    imgwarp_mls.h
 
 FORMS += \
-        mainwindow.ui
+        mainwindow.ui \
+    dialogwindow.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
